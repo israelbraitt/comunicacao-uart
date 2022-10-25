@@ -1,0 +1,36 @@
+mod:
+        mov r0,r6
+	mul r3, r2,r1
+	
+	sub r4,r6,r3
+	mov pc,lr
+	
+divide:
+    cmp r0, r1
+    movlo pc, lr
+    sub r0, r0, r1
+    add r2, r2, #1
+    b divide
+	
+.macro offset_pin pin
+	PUSH {LR}
+	
+	mov r0,\pin @ dividendo
+	mov r6,r0
+	mov r1, #10 @ divisor
+	bl divide
+	mov r11,#4
+	mul r10, r2,r11
+	
+	bl mod
+	mov r11,#3
+	mul r9,r4,r11
+	
+.endm
+
+pin_offset:
+	offset_pin 6
+	MOV PC,LR
+	
+	
+	
