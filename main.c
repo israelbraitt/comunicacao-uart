@@ -1,85 +1,284 @@
-#include<stdio.h>
+#include <stdio.h>
+#include <unistd.h>			//Used for UART
+#include <fcntl.h>			//Used for UART
+#include <termios.h>		//Used for UART
 #include<string.h>
 #include<time.h>
 
-extern void memory_map(void);
-extern void lcd_init(void);
-extern void set_out(void);
-extern void clear_lcd(void);
-extern void write(int c);
-extern void set_cursor(int pos);
-extern void cgram_addr(int local);
+#define SITUACAO 0x03
+#define ANALOGICO 0x04
+#define DIGITAL 0x05
+#define LED 0x06
+#define TRUE 1
 
-extern void map_e(int reg,int pin_offset, int pin_num);
-extern void map_rs(int reg,int pin_offset, int pin_num);
-extern void map_d7(int reg,int pin_offset, int pin_num);
-extern void map_d6(int reg,int pin_offset, int pin_num);
-extern void map_d5(int reg,int pin_offset, int pin_num);
-extern void map_d4(int reg,int pin_offset, int pin_num);
+#define GET_NODEMCU_SITUACAO 0x03
+#define GET_NODEMCU_ANALOGICO_INPUT 0x04
+#define GET_NODEMCU_DIGITAL_INPUT 0x05
+#define SET_ON_LED_NODEMCU 0x06
+#define SET_OFF_LED_NODEMCU 0x07
 
-void delay(int number_of_seconds){
-    int milli_seconds = 1000 * number_of_seconds;
- 
-    clock_t start_time = clock();
- 
-    while (clock() < start_time + milli_seconds);
-}
+//Display begin
+extern void map();
+extern void lcdInit();
+extern void clear();
+extern void lcdWrite(int a);
 
-void lcd(int e,int rs, int d7,int d6,int d5, int d4){
-        memory_map();
+void delay(int number_of_seconds);
 
-        int reg= 4 * (e/10);
-        int pin_offset = 3 *(e%10);
-        map_e(reg,pin_offset,e);
+void write_str(char c[]);
+//Display end
 
-        reg = 4 *(rs/10);
-        pin_offset = 3*(rs%10);
-        map_rs(reg,pin_offset,rs);
+int lerMenuInicial();
+int lerMenuInicial();
+unsigned char getAnalogicRequestCode();
+int getSensor();
+void write_bytes(int uart_filestream, unsigned char comando, unsigned char endereco);
+void read_bytes(int uart_filestream);
 
-        reg = 4 *(d7/10);
-        pin_offset = 3*(d7%10);
-        map_d7(reg,pin_offset,d7);
 
-        reg = 4 *(d6/10);
-        pin_offset = 3*(d6%10);
-        map_d6(reg,pin_offset,d6);
-
-        reg = 4 *(d5/10);
-        pin_offset = 3*(d5%10);
-        map_d5(reg,pin_offset,d5);
-
-        reg = 4 *(d4/10);
-        pin_offset = 3*(d4%10);
-        map_d4(reg,pin_offset,d4);
-
-        set_out();
-        lcd_init();
-}
-
-void write_str(char c[]){
-        int len = strlen(c);
-        for(int i=0;i<len;i++){
-                write(c[i]);
-        }
-}
-
-void cursor_position(int row, int col){
-	int aux_row = row == 2? 4:0;
-	int aux_col = col >= 0 && col <= 15? col:0;
-	set_cursor(aux_row | aux_col);
-}
-
-void create_custom_char(char pattern[],int local){
-	int i=0;
-	cgram_addr((local*8));
+int main(){
 	
-	for (i=0; i<8; i++){
-		write(pattern[i]);
+    //Abertura do arquivo da UART
+	int uart_filestream = -1;
+	uart_filestream = open("/dev/serial0", O_RDWR | O_NOCTTY | O_NDELAY);	//Abre em modo escrita/leitura bloqueado
+	
+	if (uart_filestream == -1){
+		printf("\nErro: nao eh posssivel abrir o arquivo da UART.\n");
+	}
+	
+	
+	//Configuracao UART
+	struct termios options;
+	tcgetattr(uart_filestream, &options);
+	options.c_cflag = B9600 | CS8 | CLOCAL | CREAD;		//<Set baud rate
+	options.c_iflag = IGNPAR;
+	options.c_oflag = 0;
+	options.c_lflag = 0;
+	tcflush(uart_filestream, TCIFLUSH);
+	tcsetattr(uart_filestream, TCSANOW, &options);
+	
+	map();
+	lcdInit();
+	write_str("Iniciando...");
+	
+	int value = 0;
+	while(value != 6){
+		value = lerMenuInicial();
+		while (value < 1 || value > 6){
+			value = lerMenuInicial();
+		}
+        
+         switch(value){
+            case 1:{
+                write_bytes(uart_filestream, GET_NODEMCU_SITUACAO, 0);
+                read_bytes(uart_filestream);
+                break;
+            }
+            case 2:{
+                write_bytes(uart_filestream, GET_NODEMCU_ANALOGICO_INPUT, 0);
+                read_bytes(uart_filestream);
+                break;
+            }
+            case 3:{
+            	unsigned char sensor =  getAnalogicRequestCode();
+                write_bytes(uart_filestream, GET_NODEMCU_DIGITAL_INPUT, sensor);
+                read_bytes(uart_filestream);
+                break;
+            }
+            case 4:{
+                write_bytes(uart_filestream, SET_ON_LED_NODEMCU, 0);
+                read_bytes(uart_filestream);
+                break;
+            }
+            case 5:{
+                write_bytes(uart_filestream, SET_OFF_LED_NODEMCU, 0);
+                read_bytes(uart_filestream);
+                break;
+            }
+
+            default: {
+                printf("Operação finalizada!\n");
+                break;
+            }
+        }
+        if(value == 6)
+        	break;
+        
+	}
+	
+    	close(uart_filestream);
+	
+		
+	return 0;	
+}
+
+void write_bytes(int uart_filestream, unsigned char comando, unsigned char endereco){
+	//----- TX BYTES -----
+	unsigned char tx_buffer[10];
+	unsigned char *p_tx_buffer;
+	
+	p_tx_buffer = &tx_buffer[0];
+	*p_tx_buffer++ = comando;
+	*p_tx_buffer++ = endereco;
+
+	if (uart_filestream != -1)
+	{
+		int count = write(uart_filestream, &tx_buffer[0], (p_tx_buffer - &tx_buffer[0]));		//Filestream, bytes to write, number of bytes to write
+		sleep(1);
+		if (count < 0)
+		{
+			printf("UART TX error\n");
+		}
+	}
+
+}
+
+void read_bytes(int uart_filestream){
+		//----- CHECK FOR ANY RX BYTES -----
+	if (uart_filestream != -1)
+	{
+		// Read up to 255 characters from the port if they are there
+		unsigned char rx_buffer[100];
+		int rx_length = read(uart_filestream, (void*)rx_buffer, 100);		//Filestream, buffer to store in, number of bytes to read (max)
+		if (rx_length < 0)
+		{
+			//An error occured (will occur if there are no bytes)
+			printf("Erro na leitura\n");
+		}
+		else if (rx_length == 0)
+		{
+			//No data waiting
+			printf("Nenhum dado disponível\n");
+		}
+		else
+		{
+			//Bytes received
+			rx_buffer[rx_length] = '\0';
+			clear();
+			switch(rx_buffer[0]){
+				case 0x00:
+					printf("Status: ok!\n");
+					write_str("Status: ok!");
+					break;
+				
+				case 0x1F:
+					printf("Status: Problema\n");
+					write_str("Status: Problema");
+					break;
+				case 0x50:
+					printf("Led aceso\n");
+					write_str("Led aceso");
+					break;
+				case 0x51:
+					printf("Led apagado\n");
+					write_str("Led apagado");
+					break;
+				case 0x02:
+					printf("LVL Sensor: %d\n", rx_buffer[1]);
+					int dado = rx_buffer[1];
+					write_str("Digital val:");
+					rx_buffer[0] = ' ';
+					char value [16];
+					sprintf(value, "%d", dado);
+					write_str(value);
+					break;
+				case 0x01:
+					printf("Analog value:\n");
+					rx_buffer[0] = ' ';
+					printf("%s\n",rx_buffer);
+					write_str("Analog val:");
+					write_str(rx_buffer);
+					break;
+				default:
+					write_str("Read error");
+					break;
+			}
+		}
 	}
 }
 
+int lerMenuInicial(){
+	int tx_menu = 0;
 
-void main(){
-        lcd(1,25,21,20,16,12);
-        write_str("Bolsonaro 22");
+	// menu de opções para transmissão de dados da uart
+	printf("Escolha uma opção:\n");
+	printf("1 - Solicitar a situação atual do NodeMCU\n");
+	printf("2 - Solicitar o valor da entrada analógica\n");
+	printf("3 - Solicitar o valor de uma das entradas digitais\n");
+	printf("4 - Acender o led da NodeMCU\n");
+	printf("5 - Apaga o led da NodeMCU\n");
+	printf("6 - Finaliza o programa\n");
+
+	scanf("%i", &tx_menu);
+	return tx_menu;
 }
+
+int getSensor(){
+	int sensor = 0;
+
+	// menu de opções para escolha do sensor que vai ser lido
+	printf("Escolha uma opção:\n");
+	printf("1 - Sensor 1\n");
+	printf("2 - Sensor 2\n");
+	printf("3 - Sensor 3\n");
+	printf("4 - Sensor 4\n");
+	printf("5 - Sensor 5\n");
+	printf("6 - Sensor 6\n");
+	printf("7 - Sensor 7\n");
+	printf("8 - Sensor 8\n");
+
+	scanf("%i", &sensor);
+	return sensor;
+}
+
+unsigned char getAnalogicRequestCode(){
+	int sensor = getSensor();
+	while(sensor < 1 || sensor > 8) {
+		printf("Sensor escolhido inválido!\n");
+		sensor = getSensor();
+	}
+	
+	switch(sensor){
+		case 1:{
+		        return 0x5;
+		}
+		case 2:{
+		        return 0x10;
+		}
+		case 3:{
+		        return 0x3;
+		}
+		case 4:{
+		        return 0x4;
+		}
+		case 5:{
+		        return 0x5;
+		}
+		case 6:{
+		        return 0x6;
+		}
+		case 7:{
+		        return 0x7;
+		}
+		case 8:{
+		        return 0x8;
+		}
+        }
+}
+
+//Display code begin
+void delay(int number_of_seconds){
+    int mili = 1000*number_of_seconds;
+    clock_t start_time = clock();
+    while(clock() < start_time + mili);
+}
+
+
+
+void write_str(char word[]){
+    for (int i=0; i<strlen(word); i++){
+        lcdWrite(word[i]);
+    }
+}
+
+//Display code end
