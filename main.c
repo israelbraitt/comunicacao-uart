@@ -239,29 +239,37 @@ unsigned char getAnalogicRequestCode(){
 	}
 	
 	switch(sensor){
+		//D0
 		case 1:{
-		        return 0x5;
+		        return 0x05;
 		}
+		//D1
 		case 2:{
 		        return 0x10;
 		}
+		//d2
 		case 3:{
-		        return 0x3;
+		        return 0x04;
 		}
+		//d3
 		case 4:{
-		        return 0x4;
+		        return 0x00;
 		}
+		//d4
 		case 5:{
-		        return 0x5;
+		        return 0x02;
 		}
+		//d5
 		case 6:{
-		        return 0x6;
+		        return 0x0E;
 		}
+		//d6
 		case 7:{
-		        return 0x7;
+		        return 0x0C;
 		}
+		//d7
 		case 8:{
-		        return 0x8;
+		        return 0x0D;
 		}
         }
 }
