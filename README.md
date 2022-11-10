@@ -77,21 +77,21 @@ Os casos de testes abaixo foram testados manualmente após a finalização do pr
 
 ### Solicitar Estado da NodeMCU
 O usuário irá selecionar a opção pelo terminal, e aguardar um resultado:
--O sistema irá informar que a NodeMCU está operando normalmente
--O sistema irá informar que a NodeMCU não está operando, situação ocorre quando o Arduino não finalizou a configuração do ESP8266
+- O sistema irá informar que a NodeMCU está operando normalmente
+- O sistema irá informar que a NodeMCU não está operando, situação ocorre quando o Arduino não finalizou a configuração do ESP8266
 
 ### Solicitar Valor do Sensor Analógico
 O usuário irá selecionar a opção pelo terminal, e aguardar um resultado:
--O sistema irá informar o valor capturado pelo único sensor analógico disponível
+- O sistema irá informar o valor capturado pelo único sensor analógico disponível
 
 ### Solicitar Valor de um Sensor Digital
 O usuário irá selecionar a opção pelo terminal, em seguida escolher um sensor de 1 a 8, que correspondem aos pinos D0 a D7. Em seguida aguarda o resultado:
--O sistema irá informar o valor capturado pelo sensor digital selecionado
+- O sistema irá informar o valor capturado pelo sensor digital selecionado
 
 ### Controle do LED
 O usuário pode controlar o led embutido no NodeMCU:
--O usuário solicita pelo terminal que o LED seja acesso, o sistema acenderá o LED, caso este esteja apagado.
--O usuário solicita pelo terminal que o LED seja apagado, o sistema apagará o LED, caso este esteja acesso. 
+- O usuário solicita pelo terminal que o LED seja acesso, o sistema acenderá o LED, caso este esteja apagado.
+- O usuário solicita pelo terminal que o LED seja apagado, o sistema apagará o LED, caso este esteja acesso. 
 
 ## Materiais de referência
 [Raspberry Pi Documentation](https://www.raspberrypi.com/documentation/computers/raspberry-pi.html#raspberry-pi-zero-w)
