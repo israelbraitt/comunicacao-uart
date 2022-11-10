@@ -73,7 +73,25 @@ A seguir estão descritas algumas funções da linguagem Arduino utilizadas no a
 A NodeMCU possui pinos para conexão com um sensor analógico e 8 sensores digitais, sendo que o sensor analógico possui um conversor analógico-digital que capta os sinais de tensão em uma faixa de valores entre 0V e 3.3V e os converte para dados digitais em uma faixa de 0 a 1023 e os sensores digitais já capturam sinais lógicos HIGH ou LOW.
 
 ## Testes
+Os casos de testes abaixo foram testados manualmente após a finalização do produto:
 
+### Solicitar Estado da NodeMCU
+O usuário irá selecionar a opção pelo terminal, e aguardar um resultado:
+-O sistema irá informar que a NodeMCU está operando normalmente
+-O sistema irá informar que a NodeMCU não está operando, situação ocorre quando o Arduino não finalizou a configuração do ESP8266
+
+### Solicitar Valor do Sensor Analógico
+O usuário irá selecionar a opção pelo terminal, e aguardar um resultado:
+-O sistema irá informar o valor capturado pelo único sensor analógico disponível
+
+### Solicitar Valor de um Sensor Digital
+O usuário irá selecionar a opção pelo terminal, em seguida escolher um sensor de 1 a 8, que correspondem aos pinos D0 a D7. Em seguida aguarda o resultado:
+-O sistema irá informar o valor capturado pelo sensor digital selecionado
+
+### Controle do LED
+O usuário pode controlar o led embutido no NodeMCU:
+-O usuário solicita pelo terminal que o LED seja acesso, o sistema acenderá o LED, caso este esteja apagado.
+-O usuário solicita pelo terminal que o LED seja apagado, o sistema apagará o LED, caso este esteja acesso. 
 
 ## Materiais de referência
 [Raspberry Pi Documentation](https://www.raspberrypi.com/documentation/computers/raspberry-pi.html#raspberry-pi-zero-w)
